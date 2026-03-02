@@ -55,3 +55,6 @@ jobs:
     - name: Link to Release
       run: |
         echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${{ github.run_id }}"
+    
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
