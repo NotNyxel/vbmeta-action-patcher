@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       ARCHITECTURE:
-        description: 'Architecture'
+        description: 'Architecture of the TOOL (not the tablet)'
         required: true
         default: 'x86_64'
         type: choice
@@ -26,15 +26,23 @@ jobs:
     - name: Check Out
       uses: actions/checkout@v3.1.0
       
-    - name: Operating System Information
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      
+    - name: Download User VBMeta
+      # This allows you to upload your stock vbmeta.img via the GitHub UI 
+      # or assumes it is already in the root of your repository.
       run: |
-        uname -a
-        
+        if [ ! -f vbmeta.img ]; then
+          echo "::error::vbmeta.img not found in repository root! Please upload it to your repo first."
+          exit 1
+        fi
+
     - name: Patch File Information
       run: |
         file ${{ github.event.inputs.ARCHITECTURE }}/vbmeta-disable-verification
         
-    - name: Give Permissio and Run Patch
+    - name: Give Permission and Run Patch
       run: |
         chmod +x ${{ github.event.inputs.ARCHITECTURE }}/vbmeta-disable-verification
         ./${{ github.event.inputs.ARCHITECTURE }}/vbmeta-disable-verification vbmeta.img
@@ -43,18 +51,13 @@ jobs:
       uses: ncipollo/release-action@v1.12.0
       with:
         artifacts: vbmeta.img
-        Name: Patched VBMeta
-        draft: false
-        prerelease: true
-        tag: ${{ github.run_id }}
+        name: Patched VBMeta
+        tag: patch-${{ github.run_id }}
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
-          Your vbmeta image are now ready!
-          Flash it now.
+          Your vbmeta image is now patched!
+          Flash this alongside TWRP in Odin.
 
     - name: Link to Release
       run: |
-        echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${{ github.run_id }}"
-    
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+        echo "Download here: https://github.com/${GITHUB_REPOSITORY}/releases/tag/patch-${{ github.run_id }}"
